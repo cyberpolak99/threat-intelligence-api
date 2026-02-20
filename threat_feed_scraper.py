@@ -4,7 +4,8 @@ import os
 from datetime import datetime
 
 DB_PATH = os.path.join(os.getcwd(), 'threats.db')
-ABUSEIPDB_KEY = "TWOJ_API_KEY_TUTAJ"
+ABUSEIPDB_KEY = os.environ.get("ABUSEIPDB_KEY", "")
+
 
 def fetch_and_save():
     headers = {

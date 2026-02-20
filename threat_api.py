@@ -8,6 +8,12 @@ app = Flask(__name__)
 DB_PATH = os.path.join(os.getcwd(), 'threats.db')
 
 def init_db():
+from threat_feed_scraper import fetch_and_save
+try:
+    fetch_and_save()
+except:
+    pass
+
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''

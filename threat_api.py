@@ -164,12 +164,7 @@ def check_ip(ip_addr):
         return jsonify({'error': 'Invalid IP format'}), 400
 
     matches = [t for t in THREAT_DATA if t['ip_address'] == ip_addr]
-    return jsonify({
-        'ip': ip_addr,
-        'is_malicious': len(matches) > 0,
-        'threat_count': len(matches),
-        'threats': matches
-    })
+    return jsonify({'ip': ip_addr, 'is_malicious': len(matches)>0, 'threat_count': len(matches), 'threats': matches})
 
 @app.route('/api/health', methods=['GET'])
 @limiter.exempt  # Health check should not be rate limited

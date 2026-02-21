@@ -6,11 +6,39 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
 import os
+import sqlite3
+import json
 
 app = FastAPI(title="Threat Intelligence Dashboard", version="1.0")
 
 # Templates
 templates = Jinja2Templates(directory="templates")
+
+# SQLite database
+DB_PATH = os.environ.get("DB_PATH", "ti_dashboard.db")
+
+def get_db_connection():
+    return sqlite3.connect(DB_PATH)
+
+def init_db():
+    """Initialize SQLite database with events table"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip TEXT NOT NULL,
+            source TEXT NOT NULL,
+            timestamp TEXT,
+            meta TEXT,
+            is_malicious INTEGER DEFAULT 0,
+            severity TEXT DEFAULT 'LOW',
+            threats TEXT,
+            created_at TEXT NOT NULL
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
 # Event data model
 class Event(BaseModel):
@@ -19,8 +47,8 @@ class Event(BaseModel):
     timestamp: Optional[str] = Field(None, description="ISO 8601 timestamp")
     meta: Optional[Dict[str, Any]] = Field(None, description="Optional metadata")
 
-# Events storage (in-memory)
-events_store = []
+# Initialize database on startup
+init_db()
 
 # Threat Database
 THREAT_DATA = [
@@ -93,7 +121,7 @@ async def dashboard_stats():
 
 @app.post("/events")
 async def create_event(event: Event):
-    """Create new event with automatic threat analysis (adds is_malicious, severity, threats)"""
+    """Create new event with automatic threat analysis (adds is_malicious, severity, threats) - SQLite"""
     event_timestamp = event.timestamp if event.timestamp else datetime.now().isoformat()
 
     # Check against THREAT_DATA
@@ -108,8 +136,28 @@ async def create_event(event: Event):
     else:
         severity = "LOW"
 
+    # Insert into SQLite
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO events (ip, source, timestamp, meta, is_malicious, severity, threats, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        event.ip,
+        event.source,
+        event_timestamp,
+        json.dumps(event.meta or {}),
+        1 if is_malicious else 0,
+        severity,
+        json.dumps(matching_threats),
+        datetime.now().isoformat()
+    ))
+    conn.commit()
+    event_id = cursor.lastrowid
+    conn.close()
+
     event_data = {
-        "id": len(events_store) + 1,
+        "id": event_id,
         "ip": event.ip,
         "source": event.source,
         "timestamp": event_timestamp,
@@ -120,39 +168,75 @@ async def create_event(event: Event):
         "created_at": datetime.now().isoformat()
     }
 
-    events_store.append(event_data)
-
     return {
         "status": "success",
-        "event_id": event_data["id"],
+        "event_id": event_id,
         "message": "Event received with threat analysis",
         "event": event_data
     }
 
 @app.get("/events")
 async def get_events(limit: int = 50, source: str = None):
-    """Get events (events already have is_malicious, severity, threats)"""
-    filtered_events = events_store
+    """Get events from SQLite with optional filtering"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
     if source:
-        filtered_events = [e for e in events_store if e['source'] == source]
+        cursor.execute('SELECT * FROM events WHERE source = ? ORDER BY id DESC LIMIT ?', (source, limit))
+    else:
+        cursor.execute('SELECT * FROM events ORDER BY id DESC LIMIT ?', (limit,))
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    events = []
+    for row in rows:
+        events.append({
+            "id": row[0],
+            "ip": row[1],
+            "source": row[2],
+            "timestamp": row[3],
+            "meta": json.loads(row[4]) if row[4] else {},
+            "is_malicious": bool(row[5]),
+            "severity": row[6],
+            "threats": json.loads(row[7]) if row[7] else [],
+            "created_at": row[8]
+        })
+
+    # Get total count
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if source:
+        cursor.execute('SELECT COUNT(*) FROM events')
+        total_rows = cursor.fetchone()[0]
+        cursor.execute('SELECT COUNT(*) FROM events WHERE source = ?', (source,))
+        filtered_rows = cursor.fetchone()[0]
+    else:
+        cursor.execute('SELECT COUNT(*) FROM events')
+        total_rows = filtered_rows = cursor.fetchone()[0]
+    conn.close()
 
     return {
-        "total": len(events_store),
-        "filtered": len(filtered_events),
+        "total": total_rows,
+        "filtered": filtered_rows,
         "limit": limit,
-        "events": filtered_events[:limit]
+        "events": events
     }
 
 @app.get("/events/stats")
 async def get_events_stats():
-    """Get events statistics"""
-    total = len(events_store)
+    """Get events statistics from SQLite"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-    by_source = {}
-    for event in events_store:
-        src = event['source']
-        by_source[src] = by_source.get(src, 0) + 1
+    cursor.execute('SELECT COUNT(*) FROM events')
+    total = cursor.fetchone()[0]
+
+    cursor.execute('SELECT source, COUNT(*) FROM events GROUP BY source')
+    by_source_raw = cursor.fetchall()
+    conn.close()
+
+    by_source = {row[0]: row[1] for row in by_source_raw}
 
     return {
         "total_events": total,
@@ -162,13 +246,32 @@ async def get_events_stats():
 
 @app.get("/events/recent")
 async def get_recent_events(limit: int = 50):
-    """Get recent N events (events already contain is_malicious, severity, threats from POST)"""
-    recent_events = events_store[-limit:]  # Get last N events
+    """Get recent N events from SQLite (events already contain is_malicious, severity, threats)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT * FROM events ORDER BY id DESC LIMIT ?', (limit,))
+    rows = cursor.fetchall()
+    conn.close()
+
+    events = []
+    for row in rows:
+        events.append({
+            "id": row[0],
+            "ip": row[1],
+            "source": row[2],
+            "timestamp": row[3],
+            "meta": json.loads(row[4]) if row[4] else {},
+            "is_malicious": bool(row[5]),
+            "severity": row[6],
+            "threats": json.loads(row[7]) if row[7] else [],
+            "created_at": row[8]
+        })
 
     return {
-        "total_events": len(events_store),
+        "total_events": len(events),  # Will match limit if enough events exist
         "limit": limit,
-        "events": recent_events,
+        "events": events,
         "timestamp": datetime.now().isoformat()
     }
 

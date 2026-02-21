@@ -87,6 +87,10 @@ RAPIDAPI_SECRET = os.environ.get("RAPIDAPI_PROXY_SECRET")
 
 @app.before_request
 def check_rapidapi_header():
+    # Skip auth for health check endpoint
+    if request.path.startswith('/api/health'):
+        return None
+
     # Validate against RAPIDAPI_PROXY_SECRET from environment
     proxy_secret = request.headers.get("X-RapidAPI-Proxy-Secret")
     expected_secret = os.environ.get('RAPIDAPI_PROXY_SECRET')

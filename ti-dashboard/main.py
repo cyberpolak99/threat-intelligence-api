@@ -2,14 +2,25 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
+from pydantic import BaseModel, Field
 import os
 
 app = FastAPI(title="Threat Intelligence Dashboard", version="1.0")
 
 # Templates
 templates = Jinja2Templates(directory="templates")
+
+# Event data model
+class Event(BaseModel):
+    ip: str = Field(..., description="IP address")
+    source: str = Field(..., description="Source: nginx, fw, etc.")
+    timestamp: Optional[str] = Field(None, description="ISO 8601 timestamp")
+    meta: Optional[Dict[str, Any]] = Field(None, description="Optional metadata")
+
+# Events storage (in-memory)
+events_store = []
 
 # Threat Database (import from parent directory if needed, or inline)
 THREAT_DATA = [
@@ -76,6 +87,60 @@ async def dashboard_stats():
     return {
         "stats": stats,
         "latest_threats": latest,
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.post("/events")
+async def create_event(event: Event):
+    """Create new event (ingest from nginx, fw, etc.)"""
+    event_timestamp = event.timestamp if event.timestamp else datetime.now().isoformat()
+
+    event_data = {
+        "id": len(events_store) + 1,
+        "ip": event.ip,
+        "source": event.source,
+        "timestamp": event_timestamp,
+        "meta": event.meta or {},
+        "created_at": datetime.now().isoformat()
+    }
+
+    events_store.append(event_data)
+
+    return {
+        "status": "success",
+        "event_id": event_data["id"],
+        "message": "Event received",
+        "event": event_data
+    }
+
+@app.get("/events")
+async def get_events(limit: int = 50, source: str = None):
+    """Get events with optional filtering"""
+    filtered_events = events_store
+
+    if source:
+        filtered_events = [e for e in events_store if e['source'] == source]
+
+    return {
+        "total": len(events_store),
+        "filtered": len(filtered_events),
+        "limit": limit,
+        "events": filtered_events[:limit]
+    }
+
+@app.get("/events/stats")
+async def get_events_stats():
+    """Get events statistics"""
+    total = len(events_store)
+
+    by_source = {}
+    for event in events_store:
+        src = event['source']
+        by_source[src] = by_source.get(src, 0) + 1
+
+    return {
+        "total_events": total,
+        "by_source": by_source,
         "timestamp": datetime.now().isoformat()
     }
 

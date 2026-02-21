@@ -87,11 +87,14 @@ RAPIDAPI_SECRET = os.environ.get("RAPIDAPI_PROXY_SECRET")
 
 @app.before_request
 def check_rapidapi_header():
-    # Only enforce in production with env var set
-    if RAPIDAPI_SECRET:
-        proxy_secret = request.headers.get("X-RapidAPI-Proxy-Secret")
-        if proxy_secret != RAPIDAPI_SECRET:
-            return jsonify({"error": "Unauthorized. RapidAPI Proxy only."}), 401
+    # Simple header validation
+    proxy_secret = request.headers.get("X-RapidAPI-Proxy-Secret")
+    # Check if header is missing, empty, or None
+    if proxy_secret is None or proxy_secret == "":
+        return jsonify({
+            "error": "Unauthorized",
+            "message": "Missing X-RapidAPI-Proxy-Secret header"
+        }), 401
 
 @app.route('/')
 @limiter.exempt  # Home page should not be rate limited

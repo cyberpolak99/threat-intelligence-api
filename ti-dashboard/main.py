@@ -144,6 +144,42 @@ async def get_events_stats():
         "timestamp": datetime.now().isoformat()
     }
 
+@app.get("/events/recent")
+async def get_recent_events(limit: int = 50, enrich_with_threats: bool = True):
+    """Get recent N events with threat information attached"""
+    recent_events = events_store[-limit:]  # Get last N events
+
+    if not enrich_with_threats:
+        return {
+            "total": len(events_store),
+            "limit": limit,
+            "events": recent_events
+        }
+
+    # Enrich with threat info from THREAT_DATA
+    enriched_events = []
+    for event in recent_events:
+        ip = event['ip']
+        matching_threats = [t for t in THREAT_DATA if t['ip_address'] == ip]
+
+        enriched_event = {
+            **event,
+            "threat_info": {
+                "is_threat": len(matching_threats) > 0,
+                "threat_count": len(matching_threats),
+                "threats": matching_threats
+            }
+        }
+
+        enriched_events.append(enriched_event)
+
+    return {
+        "total_events": len(events_store),
+        "limit": limit,
+        "events": enriched_events,
+        "timestamp": datetime.now().isoformat()
+    }
+
 def get_stats_data() -> Dict[str, Any]:
     """Calculate statistics"""
     total = len(THREAT_DATA)

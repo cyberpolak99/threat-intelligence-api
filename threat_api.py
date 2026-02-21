@@ -18,7 +18,7 @@ limiter = Limiter(
 # Complete Threat Database - 57 RECORDS (REAL DATA: 30 CERT_PL + 8 KNOWN_MALWARE + 19 HISTORICAL)
 THREAT_DATA = [
     # === 30 CERT_PL_BAD_RANGE (Righteous Polish Threats) ===
-    {"id": 1, "type": "CERT_PL_BAD_RANGE", "severity": "HIGH", "ip_address": "185.242.112.0", "detected_at": "2025-11-20 14:30:00", "source": "CERT PL"},
+    {"id": 1, "type": "CERT_PL_BAD_RANGE", "severity": "HIGH", "ip_address": "185.242.112.0", "detected_at": "2025-11-20 14:30:00", "source": "CERT PL", "description": null},
     {"id": 2, "type": "CERT_PL_BAD_RANGE", "severity": "HIGH", "ip_address": "185.242.113.0", "detected_at": "2025-11-20 15:45:00", "source": "CERT PL"},
     {"id": 3, "type": "CERT_PL_BAD_RANGE", "severity": "HIGH", "ip_address": "185.242.114.0", "detected_at": "2025-11-20 16:20:00", "source": "CERT PL"},
     {"id": 4, "type": "CERT_PL_BAD_RANGE", "severity": "HIGH", "ip_address": "185.242.115.0", "detected_at": "2025-11-20 17:15:00", "source": "CERT PL"},

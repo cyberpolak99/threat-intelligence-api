@@ -22,7 +22,7 @@ class Event(BaseModel):
 # Events storage (in-memory)
 events_store = []
 
-# Threat Database (import from parent directory if needed, or inline)
+# Threat Database
 THREAT_DATA = [
     {"id": 1, "type": "CERT_PL_BAD_RANGE", "severity": "HIGH", "ip_address": "185.242.112.0", "detected_at": "2025-11-20 14:30:00", "source": "CERT PL"},
     {"id": 2, "type": "CERT_PL_BAD_RANGE", "severity": "HIGH", "ip_address": "185.242.113.0", "detected_at": "2025-11-20 15:45:00", "source": "CERT PL"},
@@ -37,7 +37,8 @@ THREAT_DATA = [
 async def dashboard(request: Request):
     """Dashboard main page"""
     stats = get_stats_data()
-    return templates.TemplateResponse("index.html", {"request": request, "stats": stats})
+    THREAT_DATA_global = THREAT_DATA # for template access
+    return templates.TemplateResponse("index.html", {"request": request, "stats": stats, "THREAT_DATA": THREAT_DATA_global})
 
 @app.get("/threats")
 async def threats_page(request: Request, page: int = 1, limit: int = 50, severity: str = None):
@@ -74,7 +75,7 @@ async def api_threats(severity: str = None, limit: int = 100):
         filtered_data = [t for t in THREAT_DATA if t['severity'] == severity.upper()]
 
     return {
-        "total": len(TREAT_DATA),
+        "total": len(THREAT_DATA),
         "filtered": len(filtered_data),
         "data": filtered_data[:limit]
     }
@@ -92,8 +93,20 @@ async def dashboard_stats():
 
 @app.post("/events")
 async def create_event(event: Event):
-    """Create new event (ingest from nginx, fw, etc.)"""
+    """Create new event with automatic threat analysis (adds is_malicious, severity, threats)"""
     event_timestamp = event.timestamp if event.timestamp else datetime.now().isoformat()
+
+    # Check against THREAT_DATA
+    matching_threats = [t for t in THREAT_DATA if t['ip_address'] == event.ip]
+
+    # Determine severity (max if multiple, else "LOW")
+    is_malicious = len(matching_threats) > 0
+    if is_malicious:
+        severity_order = {'CRITICAL': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1}
+        severities = [t['severity'] for t in matching_threats]
+        severity = sorted(severities, key=lambda s: severity_order.get(s, 0), reverse=True)[0]
+    else:
+        severity = "LOW"
 
     event_data = {
         "id": len(events_store) + 1,
@@ -101,6 +114,9 @@ async def create_event(event: Event):
         "source": event.source,
         "timestamp": event_timestamp,
         "meta": event.meta or {},
+        "is_malicious": is_malicious,
+        "severity": severity,
+        "threats": matching_threats,
         "created_at": datetime.now().isoformat()
     }
 
@@ -109,13 +125,13 @@ async def create_event(event: Event):
     return {
         "status": "success",
         "event_id": event_data["id"],
-        "message": "Event received",
+        "message": "Event received with threat analysis",
         "event": event_data
     }
 
 @app.get("/events")
 async def get_events(limit: int = 50, source: str = None):
-    """Get events with optional filtering"""
+    """Get events (events already have is_malicious, severity, threats)"""
     filtered_events = events_store
 
     if source:
@@ -145,38 +161,14 @@ async def get_events_stats():
     }
 
 @app.get("/events/recent")
-async def get_recent_events(limit: int = 50, enrich_with_threats: bool = True):
-    """Get recent N events with threat information attached"""
+async def get_recent_events(limit: int = 50):
+    """Get recent N events (events already contain is_malicious, severity, threats from POST)"""
     recent_events = events_store[-limit:]  # Get last N events
-
-    if not enrich_with_threats:
-        return {
-            "total": len(events_store),
-            "limit": limit,
-            "events": recent_events
-        }
-
-    # Enrich with threat info from THREAT_DATA
-    enriched_events = []
-    for event in recent_events:
-        ip = event['ip']
-        matching_threats = [t for t in THREAT_DATA if t['ip_address'] == ip]
-
-        enriched_event = {
-            **event,
-            "threat_info": {
-                "is_threat": len(matching_threats) > 0,
-                "threat_count": len(matching_threats),
-                "threats": matching_threats
-            }
-        }
-
-        enriched_events.append(enriched_event)
 
     return {
         "total_events": len(events_store),
         "limit": limit,
-        "events": enriched_events,
+        "events": recent_events,
         "timestamp": datetime.now().isoformat()
     }
 

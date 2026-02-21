@@ -149,10 +149,8 @@ curl "https://api.threatintelligence.com/api/health"
 ```json
 {
   "status": "healthy",
-  "version": "1.0",
-  "timestamp": "2026-02-20T21:05:21.542296",
-  "db_path": "/app/cyber_sheld/data/cyber_shield.db",
-  "db_exists": true
+  "version": "1.1",
+  "timestamp": "2026-02-21T21:15:21.542296"
 }
 ```
 

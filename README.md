@@ -100,9 +100,8 @@ GET /api/health
 ```json
 {
   "status": "healthy",
-  "version": "1.0",
-  "timestamp": "2026-02-20T21:05:21",
-  "db_exists": true
+  "version": "1.1",
+  "timestamp": "2026-02-21T21:15:21"
 }
 ```
 

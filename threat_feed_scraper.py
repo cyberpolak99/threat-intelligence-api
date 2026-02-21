@@ -3,7 +3,6 @@ import sqlite3
 import os
 from datetime import datetime
 
-DB_PATH = os.path.join(os.getcwd(), 'threats.db')
 ABUSEIPDB_KEY = os.environ.get("ABUSEIPDB_KEY", "")
 
 

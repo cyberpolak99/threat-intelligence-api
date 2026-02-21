@@ -196,6 +196,7 @@ def check_ip(ip):
 @limiter.exempt  # Health check should not be rate limited
 def health():
     return jsonify({
+        'version': '1.1',
         'timestamp': datetime.now().isoformat()
     })
 

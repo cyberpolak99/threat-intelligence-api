@@ -1,5 +1,4 @@
 # THREAT INTELLIGENCE API - RAPORT DEPLOYMENTU
-====================================================
 
 ## ✅ CO ZOSTAŁO STWORZONE:
 

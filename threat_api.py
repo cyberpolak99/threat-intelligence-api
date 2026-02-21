@@ -1,93 +1,52 @@
-"""
-API FLASK ENDPOINT - POPRAWIONE
-==================
-Udostępnij dane o zagrożeniach
-"""
-
 from flask import Flask, jsonify, request
-import sqlite3
 from datetime import datetime
 import os
 
 app = Flask(__name__)
 
-# Poprawiona ścieżka do bazy
-DB_PATH = os.path.join(os.getcwd(), 'cyber_sheld', 'data', 'cyber_shield.db')
+# Mock database for RapidAPI deployment
+THREAT_DATA = [
+    {"id": 1, "type": "Phishing", "severity": "HIGH", "ip_address": "192.168.1.100", "detected_at": "2026-02-21 12:00:00"},
+    {"id": 2, "type": "Malware", "severity": "CRITICAL", "ip_address": "45.133.1.20", "detected_at": "2026-02-21 11:30:00"},
+    {"id": 3, "type": "Brute Force", "severity": "MEDIUM", "ip_address": "185.220.101.5", "detected_at": "2026-02-21 10:15:00"},
+    {"id": 4, "type": "DDoS", "severity": "HIGH", "ip_address": "103.212.223.4", "detected_at": "2026-02-20 23:45:00"},
+    {"id": 5, "type": "SQL Injection", "severity": "CRITICAL", "ip_address": "91.240.118.12", "detected_at": "2026-02-20 22:10:00"}
+]
 
 @app.route('/')
 def home():
-    return "<h1>Threat Intelligence API</h1><p>Uzywaj /api/threats do pobrania danych</p>"
-
+    return "<h1>Threat Intelligence API</h1><p>Use /api/threats to fetch data.</p>"
 
 @app.route('/api/threats', methods=['GET'])
 def get_threats():
-    """Pobierz 50 ostatnich zagroze"""
     limit = request.args.get('limit', 50, type=int)
     limit = min(limit, 100)
-    
-    if not os.path.exists(DB_PATH):
-        return jsonify({'error': 'Database not found'}), 404
-    
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT * FROM incident_reports
-            ORDER BY detected_at DESC
-            LIMIT ?
-        ''', (limit,))
-        
-        threats = []
-        for row in cursor.fetchall():
-            threats.append(dict(row))
-        
-        conn.close()
-        
-        return jsonify({
-            'status': 'success',
-            'count': len(threats),
-            'data': threats
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
+    return jsonify({
+        'status': 'success',
+        'count': len(THREAT_DATA[:limit]),
+        'data': THREAT_DATA[:limit]
+    })
 
 @app.route('/api/threats/stats', methods=['GET'])
 def get_stats():
-    """Statystyki bazy"""
-    if not os.path.exists(DB_PATH):
-        return jsonify({'error': 'Database not found'}), 404
-    
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        
-        stats = {
-            'total_incidents': cursor.execute('SELECT COUNT(*) FROM incident_reports').fetchone()[0],
-            'total_blocks': cursor.execute('SELECT COUNT(*) FROM active_blocks').fetchone()[0],
-            'response_actions': cursor.execute('SELECT COUNT(*) FROM response_actions').fetchone()[0]
+    stats = {
+        'total_incidents': len(THREAT_DATA),
+        'severity_distribution': {
+            'CRITICAL': len([t for t in THREAT_DATA if t['severity'] == 'CRITICAL']),
+            'HIGH': len([t for t in THREAT_DATA if t['severity'] == 'HIGH']),
+            'MEDIUM': len([t for t in THREAT_DATA if t['severity'] == 'MEDIUM'])
         }
-        
-        conn.close()
-        
-        return jsonify(stats)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
+    }
+    return jsonify(stats)
 
 @app.route('/api/health', methods=['GET'])
 def health():
-    """Health check"""
     return jsonify({
         'status': 'healthy',
         'version': '1.0',
-        'timestamp': datetime.now().isoformat(),
-        'db_path': DB_PATH,
-        'db_exists': os.path.exists(DB_PATH)
+        'timestamp': datetime.now().isoformat()
     })
 
-
 if __name__ == '__main__':
-    app.run(port=10000, debug=False)
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)

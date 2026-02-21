@@ -3,6 +3,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from datetime import datetime
 import os
+import ipaddress
 
 app = Flask(__name__)
 
@@ -18,7 +19,7 @@ limiter = Limiter(
 # Complete Threat Database - 57 RECORDS (REAL DATA: 30 CERT_PL + 8 KNOWN_MALWARE + 19 HISTORICAL)
 THREAT_DATA = [
     # === 30 CERT_PL_BAD_RANGE (Righteous Polish Threats) ===
-    {"id": 1, "type": "CERT_PL_BAD_RANGE", "severity": "HIGH", "ip_address": "185.242.112.0", "detected_at": "2025-11-20 14:30:00", "source": "CERT PL", "description": null},
+    {"id": 1, "type": "CERT_PL_BAD_RANGE", "severity": "HIGH", "ip_address": "185.242.112.0", "detected_at": "2025-11-20 14:30:00", "source": "CERT PL", "description": None},
     {"id": 2, "type": "CERT_PL_BAD_RANGE", "severity": "HIGH", "ip_address": "185.242.113.0", "detected_at": "2025-11-20 15:45:00", "source": "CERT PL"},
     {"id": 3, "type": "CERT_PL_BAD_RANGE", "severity": "HIGH", "ip_address": "185.242.114.0", "detected_at": "2025-11-20 16:20:00", "source": "CERT PL"},
     {"id": 4, "type": "CERT_PL_BAD_RANGE", "severity": "HIGH", "ip_address": "185.242.115.0", "detected_at": "2025-11-20 17:15:00", "source": "CERT PL"},
@@ -151,6 +152,45 @@ def get_stats():
         }
     }
     return jsonify(stats)
+
+@app.route('/api/check/<ip>', methods=['GET'])
+@limiter.limit("100/minute")
+def check_ip(ip):
+    """Check if IP address is in threat database"""
+    try:
+        # Validate IP address
+        ip_obj = ipaddress.ip_address(ip)
+        validated_ip = str(ip_obj)
+    except ValueError:
+        return jsonify({
+            "error": "Invalid IP address",
+            "message": f"'{ip}' is not a valid IPv4 or IPv6 address"
+        }), 400
+
+    # Search for IP in THREAT_DATA
+    matching_threats = [t for t in THREAT_DATA if t['ip_address'] == validated_ip]
+
+    # Count occurrences
+    count = len(matching_threats)
+
+    # Determine if malicious
+    is_malicious = count > 0
+
+    # Return response
+    if is_malicious:
+        return jsonify({
+            "ip": validated_ip,
+            "is_malicious": True,
+            "threats": matching_threats,
+            "count": count
+        })
+    else:
+        return jsonify({
+            "ip": validated_ip,
+            "is_malicious": False,
+            "threats": [],
+            "count": 0
+        }), 200
 
 @app.route('/api/health', methods=['GET'])
 @limiter.exempt  # Health check should not be rate limited

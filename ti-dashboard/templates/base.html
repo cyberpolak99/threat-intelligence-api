@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threat Intelligence Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: #e0e0e0; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { background: linear-gradient(135deg, #1a237e 0%, #311b92 100%); padding: 20px 0; margin-bottom: 30px; border-bottom: 2px solid #556cd6; }
+        header h1 { color: #ffffff; font-size: 24px; font-weight: 600; }
+        header p { color: #9fa8da; font-size: 14px; margin-top: 5px; }
+        nav { margin-top: 10px; }
+        nav a { color: #9fa8da; text-decoration: none; margin-right: 20px; font-size: 14px; transition: all 0.3s; }
+        nav a:hover { color: #ffffff; text-decoration: underline; }
+        .nav-active { color: #ffffff !important; font-weight: 600; text-decoration: none !important; border-bottom: 2px solid #556cd6; padding-bottom: 2px; }
+        .grid { display: grid; gap: 20px; }
+        .grid-4 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+        .grid-2 { grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); }
+        .card { background: #212121; border-radius: 8px; padding: 20px; border: 1px solid #333; }
+        .card h2 { font-size: 18px; margin-bottom: 15px; color: #556cd6; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .stat-value { font-size: 32px; font-weight: 700; margin-bottom: 5px; }
+        .stat-label { font-size: 14px; color: #9fa8da; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-CRITICAL { color: #ef5350; }
+        .stat-HIGH { color: #ffa726; }
+        .stat-MEDIUM { color: #66bb6a; }
+        .stat-LOW { color: #42a5f5; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { background: #121212; color: #9fa8da; font-weight: 600; text-transform: uppercase; font-size: 12px; }
+        tr:hover { background: #1e1e1e; }
+        .severity-CRITICAL { color: #ef5350; font-weight: 600; }
+        .severity-HIGH { color: #ffa726; font-weight: 600; }
+        .severity-MEDIUM { color: #66bb6a; font-weight: 600; }
+        .severity-LOW { color: #42a5f5; font-weight: 600; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .pagination { display: flex; justify-content: center; margin-top: 20px; gap: 10px; }
+        .pagination a { padding: 10px 20px; background: #1a237e; color: #ffffff; text-decoration: none; border-radius: 4px; transition: all 0.3s; }
+        .pagination a:hover { background: #311b92; transform: translateY(-2px); }
+        .pagination .current { background: #556cd6; font-weight: 600; }
+        .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; }
+        .btn-primary { background: #1a237e; color: #ffffff; }
+        .btn-primary:hover { background: #311b92; transform: translateY(-2px); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        footer { text-align: center; padding: 30px 0; color: #666; font-size: 12px; margin-top: 40px; border-top: 1px solid #333; }
+        .refresh-btn { position: fixed; bottom: 30px; right: 30px; z-index: 1000; }
+        .loading { text-align: center; padding: 40px; color: #9fa8da; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>⚡ Threat Intelligence Dashboard</h1>
+            <p>Cyber Shield AI — Real-time threat Detection</p>
+            <nav>
+                <a href="/" {% if request.path == "/" %}class="nav-active"{% endif %}>Dashboard</a>
+                <a href="/threats" {% if request.path.startswith("/threats") %}class="nav-active"{% endif %}>Threats</a>
+                <a href="/api/stats" target="_blank">API Stats</a>
+            </nav>
+        </div>
+    </header>
+
+    {% block content %}
+    {% endblock %}
+
+    <button class="btn btn-primary refresh-btn" onclick="location.reload()">🔄 Odśwież</button>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Cyber Shield AI. Powered by FastAPI + Jinja2 | Version 1.0</p>
+        </div>
+    </footer>
+</body>
+</html>

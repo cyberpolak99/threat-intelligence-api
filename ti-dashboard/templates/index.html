@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom: 20px; color: #e0e0e0; font-size: 32px;">📊 Dashboard</h1>
+
+    <div class="grid grid-4">
+        <div class="card">
+            <div class="stat-value">{{ stats.total_threats }}</div>
+            <div class="stat-label">Total Threats</div>
+        </div>
+
+        <div class="card">
+            <div class="stat-value stat-CRITICAL">{{ stats.by_severity.CRITICAL }}</div>
+            <div class="stat-label">Critical</div>
+        </div>
+
+        <div class="card">
+            <div class="stat-value stat-HIGH">{{ stats.by_severity.HIGH }}</div>
+            <div class="stat-label">High</div>
+        </div>
+
+        <div class="card">
+            <div class="stat-value stat-MEDIUM">{{ stats.by_severity.MEDIUM }}</div>
+            <div class="stat-label">Medium</div>
+        </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top: 30px;">
+        <div class="card">
+            <h2>📈 Threats by Severity</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th style="text-align: right;">Count</th>
+                        <th style="text-align: right;">%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for severity, count in stats.by_severity.items() %}
+                    <tr>
+                        <td class="severity-{{ severity }}">{{ severity }}</td>
+                        <td style="text-align: right;">{{ count }}</td>
+                        <td style="text-align: right;">{{ "%.1f"|format(count / stats.total_threats * 100) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>🎯 Threats by Type</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th style="text-align: right;">Count</th>
+                        <th style="text-align: right;">%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for type_name, count in stats.by_type.items() %}
+                    <tr>
+                        <td>{{ type_name }}</td>
+                        <td style="text-align: right;">{{ count }}</td>
+                        <td style="text-align: right;">{{ "%.1f"|format(count / stats.total_threats * 100) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 30px;">
+        <h2>📌 Ostatnie zagrożenia (Last 5)</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>IP Address</th>
+                        <th>Type</th>
+                        <th>Severity</th>
+                        <th>Detected</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for threat in THREAT_DATA[:5] %}
+                    <tr>
+                        <td>#{{ threat.id }}</td>
+                        <td>{{ threat.ip_address }}</td>
+                        <td>{{ threat.type }}</td>
+                        <td class="severity-{{ threat.severity }}">{{ threat.severity }}</td>
+                        <td>{{ threat.detected_at.split('.')[0] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-refresh every 30 seconds
+    setTimeout(() => location.reload(), 30000);
+</script>
+{% endblock %}

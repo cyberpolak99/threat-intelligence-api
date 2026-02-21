@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom: 20px; color: #e0e0e0; font-size: 32px;">🚨 Zagrożenia</h1>
+
+    <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+        <span style="color: #9fa8da; font-size: 14px;">Filter by severity:</span>
+        <a href="/threats" {% if severity is none %}class="nav-active"{% endif %} style="margin-left: 20px;">All</a>
+        <a href="/threats?severity=CRITICAL" {% if severity == 'CRITICAL' %}class="nav-active"{% endif %}>CRITICAL</a>
+        <a href="/threats?severity=HIGH" {% if severity == 'HIGH' %}class="nav-active"{% endif %}>HIGH</a>
+        <a href="/threats?severity=MEDIUM" {% if severity == 'MEDIUM' %}class="nav-active"{% endif %}>MEDIUM</a>
+        <a href="/threats?severity=LOW" {% if severity == 'LOW' %}class="nav-active"{% endif %}>LOW</a>
+    </div>
+
+    <div class="card">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>IP Address</th>
+                        <th>Type</th>
+                        <th>Severity</th>
+                        <th>Detected</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for threat in threats %}
+                    <tr>
+                        <td>#{{ threat.id }}</td>
+                        <td><code style="background: #121212; padding: 4px 8px; border-radius: 4px;">{{ threat.ip_address }}</code></td>
+                        <td>{{ threat.type }}</td>
+                        <td class="severity-{{ threat.severity }}"><span class="badge">{{ threat.severity }}</span></td>
+                        <td>{{ threat.detected_at.split('.')[0] }}</td>
+                        <td>{{ threat.source }}</td>
+                    </tr>
+                    {% endfor %}
+
+                    {% if threats|length == 0 %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px; color: #666;">No threats found</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if total_pages > 1 %}
+        <div class="pagination">
+            {% if page > 1 %}
+            <a href="/threats?page={{ page - 1 }}{% if severity %}&severity={{ severity }}{% endif %}">&laquo; Previous</a>
+            {% endif %}
+
+            {% for p in range(1, total_pages + 1) %}
+            {% if p == page %}
+            <span class="current">{{ p }}</span>
+            {% else %}
+            <a href="/threats?page={{ p }}{% if severity %}&severity={{ severity }}{% endif %}">{{ p }}</a>
+            {% endif %}
+            {% endfor %}
+
+            {% if page < total_pages %}
+            <a href="/threats?page={{ page + 1 }}{% if severity %}&severity={{ severity }}{% endif %}">Next &raquo;</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

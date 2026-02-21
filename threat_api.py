@@ -62,9 +62,48 @@ def health():
     return jsonify({
         'status': 'healthy',
         'version': '1.1',
+<<<<<<< HEAD
         'timestamp': datetime.now().isoformat()
     })
 
+=======
+        'timestamp': datetime.now().isoformat(),
+        'db_path': DB_PATH,
+        'db_exists': os.path.exists(DB_PATH)
+    })
+
+
+@app.route('/api/check/<ip_addr>', methods=['GET'])
+def check_ip(ip_addr):
+    import ipaddress
+    try:
+        ipaddress.ip_address(ip_addr)
+    except ValueError:
+        return jsonify({'error': 'Invalid IP format'}), 400
+    
+    if not os.path.exists(DB_PATH):
+        return jsonify({'error': 'Database not found'}), 404
+        
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        # Querying the database for the specific IP
+        cursor.execute('SELECT * FROM incident_reports WHERE source_ip = ?', (ip_addr,))
+        matches = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        
+        return jsonify({
+            'ip': ip_addr,
+            'is_malicious': len(matches) > 0,
+            'threat_count': len(matches),
+            'threats': matches
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+>>>>>>> 210a3c0 (Add /api/check/<ip> endpoint + flask-limiter)
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)

@@ -153,44 +153,23 @@ def get_stats():
     }
     return jsonify(stats)
 
-@app.route('/api/check/<ip>', methods=['GET'])
+@app.route('/api/check/<ip_addr>', methods=['GET'])
 @limiter.limit("100/minute")
-def check_ip(ip):
+def check_ip(ip_addr):
     """Check if IP address is in threat database"""
+    import ipaddress
     try:
-        # Validate IP address
-        ip_obj = ipaddress.ip_address(ip)
-        validated_ip = str(ip_obj)
+        ipaddress.ip_address(ip_addr)
     except ValueError:
-        return jsonify({
-            "error": "Invalid IP address",
-            "message": f"'{ip}' is not a valid IPv4 or IPv6 address"
-        }), 400
+        return jsonify({'error': 'Invalid IP format'}), 400
 
-    # Search for IP in THREAT_DATA
-    matching_threats = [t for t in THREAT_DATA if t['ip_address'] == validated_ip]
-
-    # Count occurrences
-    count = len(matching_threats)
-
-    # Determine if malicious
-    is_malicious = count > 0
-
-    # Return response
-    if is_malicious:
-        return jsonify({
-            "ip": validated_ip,
-            "is_malicious": True,
-            "threats": matching_threats,
-            "count": count
-        })
-    else:
-        return jsonify({
-            "ip": validated_ip,
-            "is_malicious": False,
-            "threats": [],
-            "count": 0
-        }), 200
+    matches = [t for t in THREAT_DATA if t['ip_address'] == ip_addr]
+    return jsonify({
+        'ip': ip_addr,
+        'is_malicious': len(matches) > 0,
+        'threat_count': len(matches),
+        'threats': matches
+    })
 
 @app.route('/api/health', methods=['GET'])
 @limiter.exempt  # Health check should not be rate limited

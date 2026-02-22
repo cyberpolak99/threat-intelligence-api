@@ -95,10 +95,7 @@ def check_rapidapi_proxy_secret():
     # Only enforce if RAPIDAPI_PROXY_SECRET is set
     if secret:
         if incoming != secret:
-            return jsonify({
-                "error": "Unauthorized",
-                "message": "Invalid X-RapidAPI-Proxy-Secret header"
-            }), 401
+            return jsonify({"error": "Unauthorized"}), 401
 
 @app.route('/')
 @limiter.exempt  # Home page should not be rate limited

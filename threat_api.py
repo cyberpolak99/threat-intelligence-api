@@ -4,8 +4,15 @@ from flask_limiter.util import get_remote_address
 from datetime import datetime
 import os
 import ipaddress
+import logging
 
 app = Flask(__name__)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(message)s'
+)
 
 # Rate limiting configuration - 100/day and 10/minute for all endpoints
 limiter = Limiter(
@@ -96,6 +103,16 @@ def check_rapidapi_proxy_secret():
     if secret:
         if incoming != secret:
             return jsonify({"error": "Unauthorized"}), 401
+
+@app.after_request
+def log_request(response):
+    """Log each request with IP, method, path, and status"""
+    ip = request.remote_addr
+    method = request.method
+    path = request.path
+    status = response.status_code
+    logging.info(f"{ip} - {method} {path} - {status}")
+    return response
 
 @app.route('/')
 @limiter.exempt  # Home page should not be rate limited

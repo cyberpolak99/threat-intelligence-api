@@ -23,6 +23,10 @@ limiter = Limiter(
     strategy="fixed-window"
 )
 
+# Metrics counter
+REQUEST_COUNT = 0
+THREATS_CALLS = 0
+
 # Complete Threat Database - 57 RECORDS (REAL DATA: 30 CERT_PL + 8 KNOWN_MALWARE + 19 HISTORICAL)
 THREAT_DATA = [
     # === 30 CERT_PL_BAD_RANGE (Righteous Polish Threats) ===
@@ -107,6 +111,8 @@ def check_rapidapi_proxy_secret():
 @app.after_request
 def log_request(response):
     """Log each request with IP, method, path, and status"""
+    global REQUEST_COUNT
+    REQUEST_COUNT += 1
     ip = request.remote_addr
     method = request.method
     path = request.path
@@ -121,6 +127,8 @@ def home():
 
 @app.route('/api/threats', methods=['GET'])
 def get_threats():
+    global THREATS_CALLS
+    THREATS_CALLS += 1
     limit = request.args.get('limit', 57, type=int)
     severity_filter = request.args.get('severity', None)
     type_filter = request.args.get('type', None)
@@ -191,6 +199,14 @@ def health():
         'status': 'healthy',
         'version': '1.1',
         'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/metrics', methods=['GET'])
+def metrics():
+    """Return basic metrics"""
+    return jsonify({
+        'total_requests': REQUEST_COUNT,
+        'threats_calls': THREATS_CALLS
     })
 
 @app.errorhandler(429)

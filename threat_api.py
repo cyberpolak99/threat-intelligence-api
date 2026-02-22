@@ -7,11 +7,11 @@ import ipaddress
 
 app = Flask(__name__)
 
-# Rate limiting configuration
+# Rate limiting configuration - 100/day and 10/minute for all endpoints
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    default_limits=["100 per minute"],
+    default_limits=["100 per day", "10 per minute"],
     headers_enabled=True,
     strategy="fixed-window"
 )
@@ -109,7 +109,6 @@ def home():
     return "<h1>Threat Intelligence API</h1><p>Use /api/threats to fetch data.</p>"
 
 @app.route('/api/threats', methods=['GET'])
-@limiter.limit("50/minute")
 def get_threats():
     limit = request.args.get('limit', 57, type=int)
     severity_filter = request.args.get('severity', None)
@@ -142,7 +141,6 @@ def get_threats():
     })
 
 @app.route('/api/threats/stats', methods=['GET'])
-@limiter.limit("30/minute")
 def get_stats():
     stats = {
         'total_incidents': len(THREAT_DATA),
@@ -164,7 +162,6 @@ def get_stats():
     return jsonify(stats)
 
 @app.route('/api/check/<ip_addr>', methods=['GET'])
-@limiter.limit("100/minute")
 def check_ip(ip_addr):
     """Check if IP address is in threat database"""
     import ipaddress

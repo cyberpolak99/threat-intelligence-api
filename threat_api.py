@@ -26,6 +26,7 @@ limiter = Limiter(
 # Metrics counter
 REQUEST_COUNT = 0
 THREATS_CALLS = 0
+CHECK_CALLS = 0
 
 # Complete Threat Database - 57 RECORDS (REAL DATA: 30 CERT_PL + 8 KNOWN_MALWARE + 19 HISTORICAL)
 THREAT_DATA = [
@@ -183,6 +184,8 @@ def get_stats():
 @app.route('/api/check/<ip_addr>', methods=['GET'])
 def check_ip(ip_addr):
     """Check if IP address is in threat database"""
+    global CHECK_CALLS
+    CHECK_CALLS += 1
     import ipaddress
     try:
         ipaddress.ip_address(ip_addr)
@@ -206,7 +209,8 @@ def metrics():
     """Return basic metrics"""
     return jsonify({
         'total_requests': REQUEST_COUNT,
-        'threats_calls': THREATS_CALLS
+        'threats_calls': THREATS_CALLS,
+        'check_calls': CHECK_CALLS
     })
 
 @app.errorhandler(429)

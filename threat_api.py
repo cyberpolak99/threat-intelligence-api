@@ -86,7 +86,7 @@ THREAT_DATA = [
 RAPIDAPI_SECRET = os.environ.get("RAPIDAPI_PROXY_SECRET")
 
 @app.before_request
-def check_rapidapi_header():
+def check_rapidapi_proxy_secret():
     # Skip auth for health check endpoint
     if request.path.startswith('/api/health'):
         return None

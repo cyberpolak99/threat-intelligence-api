@@ -93,7 +93,7 @@ def check_rapidapi_proxy_secret():
     secret = os.environ.get("RAPIDAPI_PROXY_SECRET")
 
     # Only enforce if RAPIDAPI_PROXY_SECRET is set
-    if secret is not None and secret != "":
+    if secret:
         if proxy_secret is None or proxy_secret != secret:
             return jsonify({
                 "error": "Forbidden" if proxy_secret is None else "Unauthorized",

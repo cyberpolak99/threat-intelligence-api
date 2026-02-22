@@ -27,6 +27,8 @@ limiter = Limiter(
 REQUEST_COUNT = 0
 THREATS_CALLS = 0
 CHECK_CALLS = 0
+ERRORS_4XX = 0
+ERRORS_5XX = 0
 
 # Complete Threat Database - 57 RECORDS (REAL DATA: 30 CERT_PL + 8 KNOWN_MALWARE + 19 HISTORICAL)
 THREAT_DATA = [
@@ -112,8 +114,12 @@ def check_rapidapi_proxy_secret():
 @app.after_request
 def log_request(response):
     """Log each request with IP, method, path, and status"""
-    global REQUEST_COUNT
+    global REQUEST_COUNT, ERRORS_4XX, ERRORS_5XX
     REQUEST_COUNT += 1
+    if 400 <= response.status_code < 500:
+        ERRORS_4XX += 1
+    elif 500 <= response.status_code < 600:
+        ERRORS_5XX += 1
     ip = request.remote_addr
     method = request.method
     path = request.path
@@ -210,7 +216,9 @@ def metrics():
     return jsonify({
         'total_requests': REQUEST_COUNT,
         'threats_calls': THREATS_CALLS,
-        'check_calls': CHECK_CALLS
+        'check_calls': CHECK_CALLS,
+        'errors_4xx': ERRORS_4XX,
+        'errors_5xx': ERRORS_5XX
     })
 
 @app.errorhandler(429)

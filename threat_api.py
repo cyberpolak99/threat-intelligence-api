@@ -82,9 +82,6 @@ THREAT_DATA = [
     {"id": 57, "type": "PHISHING_CAMPAIGN", "severity": "HIGH", "ip_address": "192.0.2.215", "detected_at": "2022-11-10 12:20:00", "source": "Historical"}
 ]
 
-# RapidAPI Security Secret (Production recommendation)
-RAPIDAPI_SECRET = os.environ.get("RAPIDAPI_PROXY_SECRET")
-
 @app.before_request
 def check_rapidapi_proxy_secret():
     # Skip auth for health check endpoint
@@ -93,11 +90,11 @@ def check_rapidapi_proxy_secret():
 
     # Validate against RAPIDAPI_PROXY_SECRET from environment
     proxy_secret = request.headers.get("X-RapidAPI-Proxy-Secret")
-    expected_secret = os.environ.get('RAPIDAPI_PROXY_SECRET')
+    secret = os.environ.get("RAPIDAPI_PROXY_SECRET")
 
     # Only enforce if RAPIDAPI_PROXY_SECRET is set
-    if expected_secret is not None and expected_secret != "":
-        if proxy_secret is None or proxy_secret != expected_secret:
+    if secret is not None and secret != "":
+        if proxy_secret is None or proxy_secret != secret:
             return jsonify({
                 "error": "Forbidden" if proxy_secret is None else "Unauthorized",
                 "message": "Missing X-RapidAPI-Proxy-Secret header" if proxy_secret is None else "Invalid X-RapidAPI-Proxy-Secret header"

@@ -1,3 +1,5 @@
+[![RapidAPI](https://img.shields.io/badge/RapidAPI-Threat%20Intelligence-blue)](https://rapidapi.com/darro2323/api/threat-intelligence-api1)
+
 # 🔓 Threat Intelligence API — Darmowe API Threat Intel
 
 ## 🎯 **Co to robi?**

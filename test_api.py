@@ -1,6 +1,6 @@
 import requests
 
-BASE = "https://threat-intelligence-api.onrender.com"
+BASE = "http://localhost:10000"
 
 def test_threats():
     r = requests.get(f"{BASE}/api/threats?limit=5")

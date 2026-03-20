@@ -27,6 +27,8 @@ class DBManager:
                     src_ip TEXT,
                     dst_ip TEXT,
                     protocol TEXT,
+                    type TEXT,
+                    severity TEXT,
                     score REAL,
                     bytes_transferred INTEGER,
                     description TEXT,
@@ -121,7 +123,7 @@ class DBManager:
         except (ValueError, TypeError):
             return 0
 
-    def log_anomaly(self, src_ip, dst_ip, protocol, score, bytes_val, desc, label=0):
+    def log_anomaly(self, src_ip, dst_ip, protocol, threat_type, severity, score, bytes_val, desc, label=0):
         """Log anomaly with input validation and SQL injection protection"""
         # Validate inputs
         src_ip = self._validate_ip(src_ip)
@@ -132,6 +134,10 @@ class DBManager:
         if not dst_ip:
             dst_ip = ""  # Optional field, allow empty
 
+        # Sanitize threat type and severity
+        threat_type = self._sanitize_string(threat_type, max_length=100)
+        severity = self._sanitize_string(severity, max_length=20)
+
         # Convert protocol to string safely
         try:
             protocol = str(int(protocol))
@@ -141,7 +147,7 @@ class DBManager:
         # Validate score
         score = self._validate_score(score)
         if score is None:
-            return False
+            score = 0.0
 
         # Validate bytes
         bytes_val = self._validate_bytes(bytes_val)
@@ -160,9 +166,9 @@ class DBManager:
                 cursor = conn.cursor()
                 cursor.execute('''
                     INSERT OR IGNORE INTO anomalies
-                    (timestamp, src_ip, dst_ip, protocol, score, bytes_transferred, description, label)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (datetime.now(), src_ip, dst_ip, protocol, score, bytes_val, desc, label))
+                    (timestamp, src_ip, dst_ip, protocol, type, severity, score, bytes_transferred, description, label)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (datetime.now(), src_ip, dst_ip, protocol, threat_type, severity, score, bytes_val, desc, label))
                 conn.commit()
                 return True
         except Exception as e:
@@ -218,7 +224,7 @@ class DBManager:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT id, timestamp, src_ip, dst_ip, protocol, score, bytes_transferred, description, label
+                SELECT id, timestamp, src_ip, dst_ip, protocol, type, severity, score, bytes_transferred, description, label
                 FROM anomalies
                 ORDER BY timestamp DESC LIMIT ?
             """, (limit,))

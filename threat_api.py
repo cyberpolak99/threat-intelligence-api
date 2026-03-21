@@ -150,13 +150,21 @@ def _elevate_risk(current: str, minimum: str) -> str:
         return current
 
 
+import socket
+import ipaddress
+
 def lookup_ip_internal(ip_addr: str) -> dict:
-    """Internal business logic for IP lookup without HTTP overhead."""
+    """Internal business logic for IP lookup without HTTP overhead. Supports domain resolution."""
     try:
-        import ipaddress
+        # Check if it's already a valid IP
         ipaddress.ip_address(ip_addr)
     except ValueError:
-        return {'ti_score': 0, 'risk_level': 'invalid', 'sources': '', 'seen_in_honeypot': 0}
+        try:
+            # Try resolving the domain to an IP
+            ip_addr = socket.gethostbyname(ip_addr)
+        except Exception:
+            # If not an IP and cannot be resolved
+            return {'ti_score': 0, 'risk_level': 'invalid', 'sources': '', 'seen_in_honeypot': 0}
 
     try:
         with get_db_connection() as conn:
@@ -206,6 +214,9 @@ def lookup_ip_internal(ip_addr: str) -> dict:
 @protected
 def check_ip(ip_addr):
     res = lookup_ip_internal(ip_addr)
+    if res['risk_level'] in ['invalid', 'error']:
+        return jsonify({"error": "Invalid IP format"}), 400
+        
     details = get_honeypot_details(ip_addr) if res['seen_in_honeypot'] else {}
     return jsonify({
         'ip':               ip_addr,

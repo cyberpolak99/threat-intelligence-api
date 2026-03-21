@@ -1,38 +1,40 @@
 import requests
 
 BASE = "http://localhost:10000"
+HEADERS = {"X-API-Key": "test-key-1"}
 
 def test_threats():
-    r = requests.get(f"{BASE}/api/threats?limit=5")
+    r = requests.get(f"{BASE}/api/threats?limit=5", headers=HEADERS)
     assert r.status_code == 200
     assert r.json()['count'] == 5
     print("✅ /api/threats OK")
 
 def test_severity_filter():
-    r = requests.get(f"{BASE}/api/threats?severity=CRITICAL")
+    r = requests.get(f"{BASE}/api/threats?severity=CRITICAL", headers=HEADERS)
     assert r.status_code == 200
     assert all(t['severity'] == 'CRITICAL' for t in r.json()['data'])
     print("✅ severity filter OK")
 
 def test_check_ip_malicious():
-    r = requests.get(f"{BASE}/api/check/185.220.101.5")
+    r = requests.get(f"{BASE}/api/check/185.220.101.5", headers=HEADERS)
     assert r.status_code == 200
     assert r.json()['is_malicious'] == True
     print("✅ /api/check malicious IP OK")
 
 def test_check_ip_clean():
-    r = requests.get(f"{BASE}/api/check/8.8.8.8")
+    r = requests.get(f"{BASE}/api/check/8.8.8.8", headers=HEADERS)
     assert r.status_code == 200
     assert r.json()['is_malicious'] == False
     print("✅ /api/check clean IP OK")
 
 def test_check_ip_invalid():
-    r = requests.get(f"{BASE}/api/check/not-an-ip")
+    r = requests.get(f"{BASE}/api/check/not-an-ip", headers=HEADERS)
     assert r.status_code == 400
+    assert r.json().get('error') == 'Invalid IP format'
     print("✅ /api/check invalid IP 400 OK")
 
 def test_health():
-    r = requests.get(f"{BASE}/api/health")
+    r = requests.get(f"{BASE}/api/health") # health doesn't need auth
     assert r.status_code == 200
     assert r.json()['status'] == 'healthy'
     print("✅ /api/health OK")

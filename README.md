@@ -64,6 +64,27 @@ curl -H "X-API-Key: YOUR_KEY" \
   https://threat-intelligence-api-1.onrender.com/api/check/suspicious-domain.com
 ```
 
+### Port Traffic Distribution (Pie Chart Data)
+```
+GET /api/threats/port-stats?limit=10
+```
+Returns top attacked ports with counts and percentages — ready for pie chart rendering.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "total_hits": 8432,
+  "count": 10,
+  "data": [
+    {"port": 22, "count": 3120, "percentage": 37.0, "label": "SSH"},
+    {"port": 3389, "count": 1850, "percentage": 21.94, "label": "RDP"},
+    {"port": 445, "count": 980, "percentage": 11.62, "label": "SMB"}
+  ]
+}
+```
+
+
 ## Pricing (via RapidAPI)
 
 | Plan | Price | Rate Limit |

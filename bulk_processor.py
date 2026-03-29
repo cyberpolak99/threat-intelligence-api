@@ -1,11 +1,11 @@
 import csv
 import io
-import pandas as pd
 from typing import List, Dict
 
 class BulkIPProcessor:
     """
     Service for processing Bulk IP CSV files and enriching them with Threat Intelligence data.
+    Uses only standard library (no pandas) for performance and smaller deployment size.
     """
     def __init__(self, lookup_func, max_rows=2000):
         self.lookup_func = lookup_func
@@ -16,44 +16,43 @@ class BulkIPProcessor:
         """
         Processes the input CSV bytes, performs lookups, and returns enriched CSV string.
         """
-        # Load CSV
         try:
-            df = pd.read_csv(io.BytesIO(csv_file_bytes))
+            # Decode bytes to string
+            csv_content = csv_file_bytes.decode('utf-8', errors='ignore')
+            f = io.StringIO(csv_content)
+            reader = csv.DictReader(f)
+            rows = list(reader)
         except Exception as e:
             raise ValueError(f"Failed to parse CSV: {e}")
 
-        if 'ip' not in df.columns:
+        if not rows:
+            raise ValueError("CSV is empty.")
+
+        if 'ip' not in reader.fieldnames:
             raise ValueError("CSV must contain an 'ip' column.")
 
-        if len(df) > self.max_rows:
+        if len(rows) > self.max_rows:
             raise ValueError(f"CSV exceeds the limit of {self.max_rows} rows.")
 
-        # Prepare enrichment columns
-        ti_scores = []
-        risk_levels = []
-        sources_list = []
-        honeypot_flags = []
+        # Prepare new headers
+        new_headers = reader.fieldnames + ['ti_score', 'risk_level', 'sources', 'seen_in_honeypot']
+        
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=new_headers)
+        writer.writeheader()
 
-        # Process rows with in-memory caching
-        for ip in df['ip']:
-            ip_str = str(ip).strip()
+        for row in rows:
+            ip_str = str(row.get('ip', '')).strip()
             
             if ip_str not in self.cache:
                 self.cache[ip_str] = self.lookup_func(ip_str)
             
             res = self.cache[ip_str]
-            ti_scores.append(res['ti_score'])
-            risk_levels.append(res['risk_level'])
-            sources_list.append(res['sources'])
-            honeypot_flags.append(res['seen_in_honeypot'])
+            row['ti_score'] = res.get('ti_score', 0)
+            row['risk_level'] = res.get('risk_level', 'none')
+            row['sources'] = res.get('sources', '')
+            row['seen_in_honeypot'] = res.get('seen_in_honeypot', 0)
+            
+            writer.writerow(row)
 
-        # Add enrichment columns to DataFrame
-        df['ti_score'] = ti_scores
-        df['risk_level'] = risk_levels
-        df['sources'] = sources_list
-        df['seen_in_honeypot'] = honeypot_flags
-
-        # Convert back to CSV string
-        output = io.StringIO()
-        df.to_csv(output, index=False)
         return output.getvalue()

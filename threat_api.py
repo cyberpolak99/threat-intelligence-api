@@ -17,7 +17,7 @@ logging.basicConfig(
 logger = logging.getLogger('ThreatAPI')
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["https://rapidapi.com", "https://threat-intelligence-api.onrender.com", "http://localhost:3000"])
 
 # Initialize DB Manager
 db = DBManager(db_path=os.environ.get("DATABASE_URL", "data/cyber_shield.db"))
@@ -115,6 +115,31 @@ def get_stats():
         })
     except Exception as e:
         logger.error(f"Error fetching stats: {e}")
+        abort(500)
+
+@app.route('/api/threats/port-stats', methods=['GET'])
+@protected
+def get_port_stats():
+    try:
+        stats = db.get_custom_port_stats()
+        return jsonify(stats)
+    except Exception as e:
+        logger.error(f"Error fetching port stats: {e}")
+        abort(500)
+
+@app.route('/api/threats/timeline', methods=['GET'])
+@protected
+def get_timeline():
+    try:
+        days = request.args.get('days', 7, type=int)
+        timeline = db.get_threat_timeline(days=days)
+        return jsonify({
+            'status': 'success',
+            'days': days,
+            'data': timeline
+        })
+    except Exception as e:
+        logger.error(f"Error fetching timeline: {e}")
         abort(500)
 
 @app.route('/api/health', methods=['GET'])

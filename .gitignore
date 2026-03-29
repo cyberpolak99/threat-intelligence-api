@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+data/*.db
+data/*.db-journal
+data/*.db-wal
+.env
+.pytest_cache/
+.vscode/
+.idea/

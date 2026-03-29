@@ -24,16 +24,16 @@ logger = logging.getLogger("ThreatAPI.Security")
 # ─── Configuration (loaded once at startup, re-reads env) ─────────────────────
 
 def _load_api_keys() -> set:
-    """Load API keys from environment variable or fallback to test keys."""
+    """Load API keys from environment variable."""
     env_val = os.environ.get("THREAT_API_KEYS", "")
     if env_val:
         keys = {k.strip() for k in env_val.split(",") if k.strip()}
         logger.info(f"[Security] Loaded {len(keys)} API key(s) from env.")
         return keys
-    # ⚠️ FALLBACK – TEST KEYS ONLY. Set THREAT_API_KEYS in production!
-    fallback = {"test-key-1", "test-key-2", "cybershield-dev"}
-    logger.warning("[Security] THREAT_API_KEYS not set – using fallback test keys!")
-    return fallback
+    
+    # In production, this should not have fallbacks!
+    logger.error("[Security] THREAT_API_KEYS not set! API access will be blocked.")
+    return set()
 
 
 def _load_rate_limit() -> int:

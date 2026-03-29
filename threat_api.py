@@ -299,6 +299,78 @@ def bulk_enrich_csv():
         logger.error(f"Bulk CSV error: {err}")
         abort(500)
 
+
+@app.route('/api/threats/port-stats', methods=['GET'])
+@protected
+def get_port_stats():
+    """
+    Returns port distribution for pie chart visualization.
+    Queries honeypot_hits table for top attacked ports.
+    """
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        limit = max(1, min(limit, 50))
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            # Try honeypot_hits table first
+            try:
+                cursor.execute("""
+                    SELECT dst_port, COUNT(*) as hit_count
+                    FROM honeypot_hits
+                    WHERE dst_port IS NOT NULL
+                    GROUP BY dst_port
+                    ORDER BY hit_count DESC
+                    LIMIT ?
+                """, (limit,))
+                rows = cursor.fetchall()
+            except Exception:
+                rows = []
+            # Fallback: use anomalies table if honeypot_hits is empty
+            if not rows:
+                cursor.execute("""
+                    SELECT dst_port, COUNT(*) as hit_count
+                    FROM anomalies
+                    WHERE dst_port IS NOT NULL AND dst_port != ''
+                    GROUP BY dst_port
+                    ORDER BY hit_count DESC
+                    LIMIT ?
+                """, (limit,))
+                rows = cursor.fetchall()
+        total = sum(r['hit_count'] for r in rows) if rows else 0
+        port_data = [
+            {
+                'port': r['dst_port'],
+                'count': r['hit_count'],
+                'percentage': round(r['hit_count'] / total * 100, 2) if total > 0 else 0,
+                'label': _port_label(r['dst_port'])
+            }
+            for r in rows
+        ]
+        return jsonify({
+            'status': 'success',
+            'total_hits': total,
+            'count': len(port_data),
+            'data': port_data
+        })
+    except Exception as e:
+        logger.error(f"Error fetching port stats: {e}")
+        abort(500)
+
+
+def _port_label(port) -> str:
+    """Returns human-readable service name for common ports."""
+    known = {
+        21: 'FTP', 22: 'SSH', 23: 'Telnet', 25: 'SMTP',
+        53: 'DNS', 80: 'HTTP', 110: 'POP3', 143: 'IMAP',
+        443: 'HTTPS', 445: 'SMB', 3306: 'MySQL', 3389: 'RDP',
+        5900: 'VNC', 6379: 'Redis', 8080: 'HTTP-Alt', 8443: 'HTTPS-Alt',
+        27017: 'MongoDB', 5432: 'PostgreSQL', 1433: 'MSSQL', 9200: 'Elasticsearch'
+    }
+    try:
+        return known.get(int(port), f'Port {port}')
+    except (ValueError, TypeError):
+        return str(port)
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     # Prod warning check

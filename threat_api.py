@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, abort, Response
+from flask import Flask, jsonify, request, abort, Response, send_file
 from flask_cors import CORS
 from datetime import datetime
 import os
@@ -57,7 +57,10 @@ def internal_error(e):
 
 @app.route('/')
 def home():
-    return "<h1>Threat Intelligence API</h1><p>Use /api/threats to fetch data.</p>"
+    try:
+        return send_file('index.html')
+    except Exception as e:
+        return "<h1>Threat Intelligence API</h1><p>Dashboard is currently unavailable.</p>"
 
 @app.route('/api/threats', methods=['GET'])
 @protected

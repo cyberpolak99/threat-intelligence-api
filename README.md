@@ -112,6 +112,11 @@ Returns top attacked ports with counts and percentages — ready for pie chart r
 (auto-block)       (TTL expiry)
 ```
 
+## Web Dashboard
+
+A built-in data visualization dashboard is now available directly at the root (`/`) endpoint of the API.
+It features real-time threat counts, blocked IPs, and interactive charts (Port Distribution and Threat Severity) built with Chart.js using a responsive Glassmorphism design.
+
 ## Self-Hosting
 
 ```bash
@@ -127,4 +132,4 @@ MIT
 
 
 ---
-*Last technical update: Fixed duplicate Flask functions and added CORS support for better RapidAPI stability.*
+*Last technical update: Added real-time HTML/Chart.js Dashboard and fixed internal routing for RapidAPI stability.*

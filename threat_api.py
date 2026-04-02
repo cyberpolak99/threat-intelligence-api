@@ -311,7 +311,7 @@ def get_port_stats():
                 cursor.execute("""
                     SELECT dst_port, COUNT(*) as hit_count
                     FROM anomalies
-                    WHERE dst_port IS NOT NULL AND dst_port != ''
+                    WHERE dst_port IS NOT NULL
                     GROUP BY dst_port
                     ORDER BY hit_count DESC
                     LIMIT ?

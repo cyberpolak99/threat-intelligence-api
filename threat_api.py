@@ -84,7 +84,6 @@ def get_threats():
                 "detected_at": a['timestamp'],
                 "description": a['description']
             })
-
         return jsonify({
             'status': 'success',
             'count': len(formatted_data),
@@ -115,16 +114,6 @@ def get_stats():
         })
     except Exception as e:
         logger.error(f"Error fetching stats: {e}")
-        abort(500)
-
-@app.route('/api/threats/port-stats', methods=['GET'])
-@protected
-def get_port_stats():
-    try:
-        stats = db.get_custom_port_stats()
-        return jsonify(stats)
-    except Exception as e:
-        logger.error(f"Error fetching port stats: {e}")
         abort(500)
 
 @app.route('/api/threats/timeline', methods=['GET'])
@@ -162,9 +151,8 @@ def get_db_connection():
 
 # ─── Honeypot scoring constants ─────────────────────────────────────────────
 # When IP is in honeypot AND has external feed data → boost risk level.
-HONEYPOT_SCORE_BOOST = 0.15       # added to ti_score if also in feeds
-HONEYPOT_MIN_RISK_LEVEL = "high"  # minimum risk_level when seen in honeypot
-
+HONEYPOT_SCORE_BOOST = 0.15 # added to ti_score if also in feeds
+HONEYPOT_MIN_RISK_LEVEL = "high" # minimum risk_level when seen in honeypot
 _RISK_ORDER = ["none", "low", "medium", "high", "critical"]
 
 def _elevate_risk(current: str, minimum: str) -> str:
@@ -173,7 +161,6 @@ def _elevate_risk(current: str, minimum: str) -> str:
         return current if _RISK_ORDER.index(current) >= _RISK_ORDER.index(minimum) else minimum
     except ValueError:
         return current
-
 
 import socket
 import ipaddress
@@ -190,47 +177,40 @@ def lookup_ip_internal(ip_addr: str) -> dict:
         except Exception:
             # If not an IP and cannot be resolved
             return {'ti_score': 0, 'risk_level': 'invalid', 'sources': '', 'seen_in_honeypot': 0}
-
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM anomalies WHERE src_ip = ?", (ip_addr,))
             matches = [dict(row) for row in cursor.fetchall()]
-
-        severity_map = {"CRITICAL": 100, "HIGH": 80, "MEDIUM": 50, "LOW": 20}
-        reverse_map = {100: "critical", 80: "high", 50: "medium", 20: "low"}
-
-        max_val = 0
-        scores = []
-        sources = set()
-
-        for m in matches:
-            val = severity_map.get(str(m.get('severity', '')).upper(), 20)
-            if val > max_val:
-                max_val = val
-            scores.append(float(m.get('score') or 0))
-            if m.get('type'):
-                sources.add(str(m['type']))
-
-        base_score    = max(scores) if scores else 0.0
-        base_risk     = reverse_map.get(max_val, 'none') if matches else 'none'
-
-        # ── Honeypot enrichment ──────────────────────────────────────────────
-        in_honeypot = is_ip_in_honeypot(ip_addr)
-        if in_honeypot:
-            sources.add('cybershield-honeypot')
+            severity_map = {"CRITICAL": 100, "HIGH": 80, "MEDIUM": 50, "LOW": 20}
+            reverse_map = {100: "critical", 80: "high", 50: "medium", 20: "low"}
+            max_val = 0
+            scores = []
+            sources = set()
+            for m in matches:
+                val = severity_map.get(str(m.get('severity', '')).upper(), 20)
+                if val > max_val:
+                    max_val = val
+                scores.append(float(m.get('score') or 0))
+                if m.get('type'):
+                    sources.add(str(m['type']))
+            base_score = max(scores) if scores else 0.0
+            base_risk = reverse_map.get(max_val, 'none') if matches else 'none'
+            # ── Honeypot enrichment ──────────────────────────────────────────────
+            in_honeypot = is_ip_in_honeypot(ip_addr)
+            if in_honeypot:
+                sources.add('cybershield-honeypot')
             # Boost score if ALSO in external feeds, cap at 1.0
             if matches:
                 base_score = min(1.0, base_score + HONEYPOT_SCORE_BOOST)
             # Enforce minimum risk level
             base_risk = _elevate_risk(base_risk, HONEYPOT_MIN_RISK_LEVEL)
-
-        return {
-            'ti_score':         int(base_score * 10000) / 10000,
-            'risk_level':       base_risk,
-            'sources':          ";".join(sorted(sources)),
-            'seen_in_honeypot': 1 if in_honeypot else 0,
-        }
+            return {
+                'ti_score': int(base_score * 10000) / 10000,
+                'risk_level': base_risk,
+                'sources': ";".join(sorted(sources)),
+                'seen_in_honeypot': 1 if in_honeypot else 0,
+            }
     except Exception as e:
         logger.error(f"Internal IP lookup failed for {ip_addr}: {e}")
         return {'ti_score': 0, 'risk_level': 'error', 'sources': '', 'seen_in_honeypot': 0}
@@ -241,18 +221,17 @@ def check_ip(ip_addr):
     res = lookup_ip_internal(ip_addr)
     if res['risk_level'] in ['invalid', 'error']:
         return jsonify({"error": "Invalid IP format"}), 400
-        
+    
     details = get_honeypot_details(ip_addr) if res['seen_in_honeypot'] else {}
     return jsonify({
-        'ip':               ip_addr,
-        'is_malicious':     res['risk_level'] not in ['none', 'invalid'],
-        'ti_score':         res['ti_score'],
-        'risk_level':       res['risk_level'],
-        'sources':          res['sources'],
+        'ip': ip_addr,
+        'is_malicious': res['risk_level'] not in ['none', 'invalid'],
+        'ti_score': res['ti_score'],
+        'risk_level': res['risk_level'],
+        'sources': res['sources'],
         'seen_in_honeypot': res['seen_in_honeypot'],
         'honeypot_details': details,
     })
-
 
 @app.route('/api/honeypot-feed', methods=['GET'])
 @protected
@@ -263,8 +242,8 @@ def honeypot_feed():
     ips = get_all_honeypot_ips(limit=limit)
     return jsonify({
         'status': 'success',
-        'count':  len(ips),
-        'data':   ips,
+        'count': len(ips),
+        'data': ips,
     })
 
 @app.route('/api/bulk-ip-csv', methods=['POST'])
@@ -273,11 +252,10 @@ def bulk_enrich_csv():
     """Upload CSV, enrich with threat intel, and return as download"""
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
-        
+    
     file = request.files['file']
     if not file or not file.filename.endswith('.csv'):
         return jsonify({'error': 'Invalid file format. Upload .csv'}), 400
-
     # Size validation
     file_bytes = file.read()
     if len(file_bytes) > MAX_CONTENT_LENGTH:
@@ -298,7 +276,6 @@ def bulk_enrich_csv():
     except Exception as err:
         logger.error(f"Bulk CSV error: {err}")
         abort(500)
-
 
 @app.route('/api/threats/port-stats', methods=['GET'])
 @protected
@@ -378,6 +355,5 @@ if __name__ == '__main__':
         logger.info("Running in PRODUCTION mode")
     else:
         logger.info("Running in DEVELOPMENT mode")
-        
+    
     app.run(host='0.0.0.0', port=port)
-

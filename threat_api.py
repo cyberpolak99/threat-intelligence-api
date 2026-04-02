@@ -117,15 +117,6 @@ def get_stats():
         logger.error(f"Error fetching stats: {e}")
         abort(500)
 
-@app.route('/api/threats/port-stats', methods=['GET'])
-@protected
-def get_port_stats():
-    try:
-        stats = db.get_custom_port_stats()
-        return jsonify(stats)
-    except Exception as e:
-        logger.error(f"Error fetching port stats: {e}")
-        abort(500)
 
 @app.route('/api/threats/timeline', methods=['GET'])
 @protected

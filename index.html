@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Shield AI | Threat Intelligence Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #05070a;
+            --card-bg: rgba(13, 17, 23, 0.7);
+            --accent-primary: #00f2ff;
+            --accent-secondary: #7000ff;
+            --text-main: #e6edf3;
+            --text-dim: #8b949e;
+            --critical: #ff3e3e;
+            --high: #ff8c3e;
+            --medium: #fbc02d;
+            --low: #4caf50;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(112, 0, 255, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(0, 242, 255, 0.1) 0%, transparent 40%);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Navbar / Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #fff, var(--text-dim));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid rgba(0, 255, 0, 0.2);
+            color: #4caf50;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #4caf50;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #4caf50;
+            animation: pulse 2s infinite;
+        }
+
+        /* Dashboard Grid */
+        .grid {
+            display: grid;
+            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Charts Section */
+        .chart-container {
+            grid-column: span 2;
+            min-height: 400px;
+        }
+
+        @media (max-width: 900px) {
+            .chart-container {
+                grid-column: span 1;
+            }
+        }
+
+        canvas {
+            width: 100% !important;
+            height: auto !important;
+        }
+
+        /* API Control */
+        .api-config {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            flex-grow: 1;
+            font-family: inherit;
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <h1>Cyber Shield AI</h1>
+            </div>
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                API Live
+            </div>
+        </header>
+
+        <div class="grid">
+            <!-- Stats -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Total Threats</span>
+                </div>
+                <div class="card-value" id="stat-total">--</div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Active Blocks</span>
+                </div>
+                <div class="card-value" id="stat-blocks" style="color: var(--critical)">--</div>
+            </div>
+
+            <!-- Main Chart Area -->
+            <div class="card chart-container">
+                <div class="card-header">
+                    <span class="card-title">Distribution of Targeted Ports</span>
+                </div>
+                <div style="height: 300px; display: flex; justify-content: center;">
+                    <canvas id="portChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Severity Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Threat Severities</span>
+                </div>
+                <canvas id="severityChart"></canvas>
+            </div>
+        </div>
+
+        <div class="api-config">
+            <input type="text" id="apiKey" placeholder="Enter API Key (Optional if testing local/RapidAPI proxy)" value="">
+            <button onclick="refreshData()">Refresh Stats</button>
+        </div>
+    </div>
+
+    <script>
+        // Use either local path or Render path
+        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? 'http://localhost:10000' 
+            : 'https://threat-intelligence-api.onrender.com';
+
+        let portChart, severityChart;
+
+        async function fetchData(endpoint) {
+            const apiKey = document.getElementById('apiKey').value;
+            const headers = { 'Content-Type': 'application/json' };
+            if (apiKey) headers['X-API-Key'] = apiKey;
+
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, { headers });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return await response.json();
+            } catch (e) {
+                console.error(`Error fetching ${endpoint}:`, e);
+                return null;
+            }
+        }
+
+        async function initCharts() {
+            const ctx1 = document.getElementById('portChart').getContext('2d');
+            portChart = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [
+                            '#00f2ff', '#7000ff', '#ff3e3e', '#ff8c3e', '#fbc02d', '#4caf50', '#009688', '#3f51b5'
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 20
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#8b949e', font: { family: 'Outfit' } } }
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            const ctx2 = document.getElementById('severityChart').getContext('2d');
+            severityChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['Critical', 'High', 'Medium', 'Low'],
+                    datasets: [{
+                        label: 'Incidents',
+                        data: [0, 0, 0, 0],
+                        backgroundColor: ['#ff3e3e', '#ff8c3e', '#fbc02d', '#4caf50']
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { display: false },
+                        x: { ticks: { color: '#8b949e' }, grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        async function refreshData() {
+            // General stats
+            const stats = await fetchData('/api/threats/stats');
+            if (stats) {
+                document.getElementById('stat-total').innerText = stats.total_incidents.toLocaleString();
+                document.getElementById('stat-blocks').innerText = stats.active_blocks.toLocaleString();
+                
+                if (stats.severity_distribution) {
+                    severityChart.data.datasets[0].data = [
+                        stats.severity_distribution.CRITICAL || 0,
+                        stats.severity_distribution.HIGH || 0,
+                        stats.severity_distribution.MEDIUM || 0,
+                        stats.severity_distribution.LOW || 0
+                    ];
+                    severityChart.update();
+                }
+            }
+
+            // Port stats
+            const portData = await fetchData('/api/threats/port-stats');
+            if (portData && portData.data) {
+                portChart.data.labels = portData.data.map(item => item.label);
+                portChart.data.datasets[0].data = portData.data.map(item => item.count);
+                portChart.update();
+            }
+        }
+
+        // Initial Load
+        window.onload = () => {
+            initCharts();
+            refreshData();
+        };
+    </script>
+</body>
+</html>

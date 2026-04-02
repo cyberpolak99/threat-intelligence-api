@@ -124,3 +124,7 @@ python threat_api.py
 ## License
 
 MIT
+
+
+---
+*Last technical update: Fixed duplicate Flask functions and added CORS support for better RapidAPI stability.*

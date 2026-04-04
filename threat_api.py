@@ -125,11 +125,30 @@ def get_stats():
 def get_timeline():
     try:
         days = request.args.get('days', 7, type=int)
-        timeline = db.get_threat_timeline(days=days)
+        days = max(1, min(days, 30))
+        timeline_data = db.get_threat_timeline(days=days)
+        
+        # Pro-level logic: fill missing dates with 0
+        from datetime import date, timedelta
+        end_date = date.today()
+        start_date = end_date - timedelta(days=days-1)
+        
+        full_timeline = []
+        data_map = {item['date']: item['count'] for item in timeline_data}
+        
+        curr = start_date
+        while curr <= end_date:
+            d_str = curr.strftime('%Y-%m-%d')
+            full_timeline.append({
+                "date": d_str,
+                "count": data_map.get(d_str, 0)
+            })
+            curr += timedelta(days=1)
+
         return jsonify({
             'status': 'success',
             'days': days,
-            'data': timeline
+            'data': full_timeline
         })
     except Exception as e:
         logger.error(f"Error fetching timeline: {e}")

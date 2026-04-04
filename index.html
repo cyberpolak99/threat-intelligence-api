@@ -269,7 +269,20 @@
                 <div class="card-header">
                     <span class="card-title">Threat Severities</span>
                 </div>
-                <canvas id="severityChart"></canvas>
+                <div style="height: 250px;">
+                    <canvas id="severityChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Timeline Chart - Full Width -->
+            <div class="card" style="grid-column: 1 / -1; min-height: 350px;">
+                <div class="card-header">
+                    <span class="card-title">Attack Activity (Last 7 Days)</span>
+                    <span id="timeline-count" style="font-weight: bold; color: var(--accent-primary)"></span>
+                </div>
+                <div style="height: 250px;">
+                    <canvas id="timelineChart"></canvas>
+                </div>
             </div>
         </div>
 
@@ -285,7 +298,7 @@
             ? 'http://localhost:10000' 
             : 'https://threat-intelligence-api.onrender.com';
 
-        let portChart, severityChart;
+        let portChart, severityChart, timelineChart;
 
         async function fetchData(endpoint) {
             const apiKey = document.getElementById('apiKey').value;
@@ -346,6 +359,33 @@
                     plugins: { legend: { display: false } }
                 }
             });
+
+            const ctx3 = document.getElementById('timelineChart').getContext('2d');
+            timelineChart = new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Threats Detected',
+                        data: [],
+                        borderColor: '#00f2ff',
+                        backgroundColor: 'rgba(0, 242, 255, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { display: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8b949e' } },
+                        x: { display: true, grid: { display: false }, ticks: { color: '#8b949e' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
         }
 
         async function refreshData() {
@@ -372,6 +412,17 @@
                 portChart.data.labels = portData.data.map(item => item.label);
                 portChart.data.datasets[0].data = portData.data.map(item => item.count);
                 portChart.update();
+            }
+
+            // Timeline stats
+            const timelineData = await fetchData('/api/threats/timeline?days=7');
+            if (timelineData && timelineData.data) {
+                timelineChart.data.labels = timelineData.data.map(item => item.date.slice(5)); // Show MM-DD
+                timelineChart.data.datasets[0].data = timelineData.data.map(item => item.count);
+                timelineChart.update();
+                
+                const totalInDays = timelineData.data.reduce((acc, obj) => acc + obj.count, 0);
+                document.getElementById('timeline-count').innerText = `${totalInDays} Threats in 7d`;
             }
         }
 

@@ -36,28 +36,61 @@ Would love to hear your feedback on the dashboard and the data!
 """
 
     twitter_post = f"""
-🛡️ Cyberattackers never sleep! 
+🛡️ Cyberattackers never sleep!
 Our Cyber Shield Honeypot just crossed {total} malicious activities detected and neutralized {blocks} active threats.
 
-Top attack vector today: {top_port} ({top_port_hits} attempts). 
+Top attack vector today: {top_port} ({top_port_hits} attempts).
 
 We just launched a live Dashboard to visualize this threat intel in real-time.
-Check it out here: https://threat-intelligence-api.onrender.com/ 
+Check it out here: https://threat-intelligence-api.onrender.com/
 #CyberSecurity #API #ThreatIntel #BuildInPublic
+"""
+
+    indie_hackers_post = f"""
+[Title] How I turned a Honeypot into a SaaS with {total} attacks logged.
+
+Hey everyone,
+
+I've been building Cyber Shield AI, a threat intelligence API powered by a global honeypot network. 
+Today we hit a milestone: **{total} attacks** logged in our database. 
+
+What's interesting is that **{top_port}** remains the most targeted vector, accounting for the majority of the hits today.
+
+I just deployed a real-time dashboard (Glassmorphism + Chart.js) to show the world what's actually happening on the "darker" side of the web.
+
+Live Dashboard: https://threat-intelligence-api.onrender.com/
+API on RapidAPI: [Your-RapidAPI-Link]
+
+Open to any feedback on the data visualization or the API itself!
+"""
+
+    linkedin_post = f"""
+🚀 Milestone Alert: Cyber Shield AI has now logged over {total} security threats!
+
+Our honeypot network is actively monitoring and blocking malicious actors in real-time. 
+Today's top threat vector: {top_port}.
+
+By serving this data via a high-performance API, we're helping developers protect their applications with real-world threat intelligence.
+
+Check out our new Live Dashboard:
+🔗 https://threat-intelligence-api.onrender.com/
+
+#CyberSecurity #ThreatIntelligence #SaaS #BuildInPublic #API
 """
 
     return {
         "reddit": reddit_post.strip(),
-        "twitter": twitter_post.strip()
+        "twitter": twitter_post.strip(),
+        "indie_hackers": indie_hackers_post.strip(),
+        "linkedin": linkedin_post.strip()
     }
 
 if __name__ == "__main__":
     print("Generating Social Media Content based on Live DB Stats...\n")
     posts = generate_social_media_posts()
     
-    print("=== REDDIT POST ===")
-    print(posts["reddit"])
-    print("\n" + "="*50 + "\n")
-    print("=== TWITTER / X POST ===")
-    print(posts["twitter"])
-    print("\n" + "="*50 + "\n")
+    platforms = ["reddit", "twitter", "indie_hackers", "linkedin"]
+    for p in platforms:
+        print(f"=== {p.upper().replace('_', ' ')} POST ===")
+        print(posts[p])
+        print("\n" + "="*60 + "\n")

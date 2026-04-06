@@ -144,7 +144,6 @@ def get_threats():
         abort(500)
 
 @app.route('/api/threats/stats', methods=['GET'])
-@protected
 def get_stats():
     try:
         db_stats = db.get_stats()
@@ -168,7 +167,6 @@ def get_stats():
 
 
 @app.route('/api/threats/timeline', methods=['GET'])
-@protected
 def get_timeline():
     try:
         days = request.args.get('days', 7, type=int)
@@ -348,7 +346,6 @@ def bulk_enrich_csv():
         abort(500)
 
 @app.route('/api/threats/port-stats', methods=['GET'])
-@protected
 def get_port_stats():
     """
     Returns port distribution for pie chart visualization.
